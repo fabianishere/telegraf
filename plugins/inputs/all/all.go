@@ -139,6 +139,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/postfix"
 	_ "github.com/influxdata/telegraf/plugins/inputs/postgresql"
 	_ "github.com/influxdata/telegraf/plugins/inputs/postgresql_extensible"
+	_ "github.com/influxdata/telegraf/plugins/inputs/powercap"
 	_ "github.com/influxdata/telegraf/plugins/inputs/powerdns"
 	_ "github.com/influxdata/telegraf/plugins/inputs/powerdns_recursor"
 	_ "github.com/influxdata/telegraf/plugins/inputs/processes"
