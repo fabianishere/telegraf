@@ -30,6 +30,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/couchbase"
 	_ "github.com/influxdata/telegraf/plugins/inputs/couchdb"
 	_ "github.com/influxdata/telegraf/plugins/inputs/cpu"
+	_ "github.com/influxdata/telegraf/plugins/inputs/linux_cpu"
 	_ "github.com/influxdata/telegraf/plugins/inputs/csgo"
 	_ "github.com/influxdata/telegraf/plugins/inputs/dcos"
 	_ "github.com/influxdata/telegraf/plugins/inputs/directory_monitor"
