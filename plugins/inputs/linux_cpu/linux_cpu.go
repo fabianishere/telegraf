@@ -20,6 +20,7 @@ const defaultHostSys = "/sys"
 type LinuxCPU struct {
 	Log             telegraf.Logger `toml:"-"`
 	PathSysfs       string          `toml:"host_sys"`
+	GatherCPUFreq   bool            `toml:"gather_cpufreq"`
 	GatherThrottles bool            `toml:"gather_throttles"`
 	cpus            []cpu
 }
@@ -30,13 +31,23 @@ type cpu struct {
 	props map[string]*os.File
 }
 
+type prop struct {
+	name     string
+	path     string
+	optional bool
+}
+
 var sampleConfig = `
   ## Path for sysfs filesystem.
   ## See https://www.kernel.org/doc/Documentation/filesystems/sysfs.txt
   ## Defaults:
   # host_sys = "/sys"
 
-  ## Gather CPU throttles per core
+  ## Gather CPU frequency information
+  ## Defaults:
+  # gather_cpufreq = true
+
+  ## Gather CPU throttle information per core
   ## Defaults:
   # gather_throttles = false
 `
@@ -105,35 +116,49 @@ func (g *LinuxCPU) discoverCpus() ([]cpu, error) {
 		_, cpuName := filepath.Split(dir)
 		cpuNum := strings.TrimPrefix(cpuName, "cpu")
 
-		if _, err := os.Stat(filepath.Join(dir, "cpufreq")); os.IsNotExist(err) {
-			return nil, fmt.Errorf("CPUFreq subsystem not available for cpu %s", cpuNum)
-		}
-
 		cpu := cpu{
 			id:    cpuNum,
 			path:  dir,
 			props: make(map[string]*os.File),
 		}
 
-		props := make(map[string]string)
-		props["cpufreq/scaling_cur_freq"] = "scaling_cur_freq"
-		props["cpufreq/scaling_min_freq"] = "scaling_min_freq"
-		props["cpufreq/scaling_max_freq"] = "scaling_max_freq"
+		var props []prop
+
+		if g.GatherCPUFreq {
+			props = append(props,
+				prop{ name: "scaling_cur_freq", path: "cpufreq/scaling_cur_freq", optional: false },
+				prop{ name: "scaling_min_freq", path: "cpufreq/scaling_min_freq", optional: false },
+				prop{ name: "scaling_max_freq", path: "cpufreq/scaling_max_freq", optional: false },
+				prop{ name: "cpuinfo_cur_freq", path: "cpufreq/cpuinfo_cur_freq", optional: true },
+				prop{ name: "cpuinfo_min_freq", path: "cpufreq/cpuinfo_min_freq", optional: true },
+				prop{ name: "cpuinfo_max_freq", path: "cpufreq/cpuinfo_max_freq", optional: true },
+			)
+		}
 
 		if g.GatherThrottles {
-			props["thermal_throttle/core_throttle_count"] = "throttle_count"
+			props = append(
+				props,
+				prop{ name: "throttle_count", path: "thermal_throttle/core_throttle_count", optional: false },
+				prop{ name: "throttle_max_time", path: "thermal_throttle/core_throttle_max_time_ms", optional: false },
+				prop{ name: "throttle_total_time", path: "thermal_throttle/core_throttle_total_time_ms", optional: false },
+			)
 		}
 
 		var failed = false
-		for prop, name := range props {
-			fd, err := os.Open(filepath.Join(dir, prop))
-			if err != nil {
-				g.Log.Warnf("Failed to load property %s: %s", filepath.Join(dir, prop), err)
+		for _, prop := range props {
+			fd, err := os.Open(filepath.Join(dir, prop.path))
+			if err != nil && !prop.optional {
+				g.Log.Warnf("Failed to load property %s: %s", filepath.Join(dir, prop.path), err)
 				failed = true
 				break
 			}
 
-			cpu.props[name] = fd
+			cpu.props[prop.name] = fd
+		}
+
+		if len(cpu.props) == 0 {
+			g.Log.Warnf("No properties enabled for CPU %s", cpuNum)
+			failed = true
 		}
 
 		if !failed {
@@ -144,7 +169,11 @@ func (g *LinuxCPU) discoverCpus() ([]cpu, error) {
 }
 
 func init() {
-	inputs.Add("linux_cpu", func() telegraf.Input { return &LinuxCPU{} })
+	inputs.Add("linux_cpu", func() telegraf.Input {
+		return &LinuxCPU{
+			GatherCPUFreq: true,
+		}
+	})
 }
 
 func readUintFromFile(fd *os.File) (uint64, error) {

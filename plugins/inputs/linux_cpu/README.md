@@ -9,6 +9,10 @@ The `linux_cpu` plugin gathers CPU metrics exposed on Linux-based systems.
   ## See https://www.kernel.org/doc/Documentation/filesystems/sysfs.txt
   ## Defaults:
   # host_sys = "/sys"
+ 
+  ## Gather CPU frequency information
+  ## Defaults:
+  # gather_cpufreq = true
 
   ## Gather CPU throttles per core
   ## Defaults:
@@ -24,13 +28,25 @@ The `linux_cpu` plugin gathers CPU metrics exposed on Linux-based systems.
     |-----|-------------|
     | `cpu` | Identifier of the CPU |
 
-  - The following fields are emitted by the plugin:
+  - The following fields are emitted by the plugin when enabling `gather_cpufreq`:
 
     | Metric name (field) | Description | Units |
     |---------------------|-------------|-------|
     | `scaling_cur_freq` | Current frequency of the CPU as determined by CPUFreq | KHz |
     | `scaling_min_freq` | Minimum frequency the governor can scale to | KHz |
     | `scaling_max_freq` | Maximum frequency the governor can scale to | KHz |
+    | `cpuinfo_cur_freq` | Current frequency of the CPU as determined by the hardware | KHz |
+    | `cpuinfo_min_freq` | Minimum operating frequency of the CPU | KHz |
+    | `cpuinfo_max_freq` | Maximum operating frequency of the CPU | KHz |
+
+  - The following fields are emitted by the plugin when enabling `gather_throttles`:
+
+    | Metric name (field) | Description | Units |
+    |---------------------|-------------|-------|
+    | `throttle_count` | Number of thermal throttle events reported by the CPU |  |
+    | `throttle_max_time` | Maximum amount of time CPU was in throttled state  | ms |
+    | `throtlle_total_time` | Cumulative time during which the CPU was in throttled state | ms |
+
 
 ### Example Output
 
