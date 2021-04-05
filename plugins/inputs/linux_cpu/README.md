@@ -3,20 +3,18 @@ The `linux_cpu` plugin gathers CPU metrics exposed on Linux-based systems.
 
 #### Configuration
 ```toml
-# Collects current CPU's frequencies
-[[inputs.cpufreq]]
+# Collects CPU metrics exposed on Linux
+[[inputs.linux_cpu]]
   ## Path for sysfs filesystem.
   ## See https://www.kernel.org/doc/Documentation/filesystems/sysfs.txt
   ## Defaults:
   # host_sys = "/sys"
- 
-  ## Gather CPU frequency information
-  ## Defaults:
-  # gather_cpufreq = true
 
-  ## Gather CPU throttles per core
+  ## CPU metrics collected by the plugin.
+  ## Supported options:
+  ## "cpufreq", "thermal"
   ## Defaults:
-  # gather_throttles = false
+  # metrics = ["cpufreq"]
 ```
 
 ### Metrics
@@ -28,7 +26,7 @@ The `linux_cpu` plugin gathers CPU metrics exposed on Linux-based systems.
     |-----|-------------|
     | `cpu` | Identifier of the CPU |
 
-  - The following fields are emitted by the plugin when enabling `gather_cpufreq`:
+  - The following fields are emitted by the plugin when selecting `cpufreq`:
 
     | Metric name (field) | Description | Units |
     |---------------------|-------------|-------|
@@ -39,7 +37,7 @@ The `linux_cpu` plugin gathers CPU metrics exposed on Linux-based systems.
     | `cpuinfo_min_freq` | Minimum operating frequency of the CPU | KHz |
     | `cpuinfo_max_freq` | Maximum operating frequency of the CPU | KHz |
 
-  - The following fields are emitted by the plugin when enabling `gather_throttles`:
+  - The following fields are emitted by the plugin when selecting `thermal`:
 
     | Metric name (field) | Description | Units |
     |---------------------|-------------|-------|
@@ -51,12 +49,16 @@ The `linux_cpu` plugin gathers CPU metrics exposed on Linux-based systems.
 ### Example Output
 
 ```
-> linux_cpu,cpu=0,host=Z370M-DS3H scaling_cur_freq=1382522i,scaling_max_freq=4900000i,scaling_min_freq=800000i 1604049750000000000
-> linux_cpu,cpu=1,host=Z370M-DS3H scaling_cur_freq=1094884i,scaling_max_freq=4900000i,scaling_min_freq=800000i 1604049750000000000
-> linux_cpu,cpu=2,host=Z370M-DS3H scaling_cur_freq=1010482i,scaling_max_freq=4900000i,scaling_min_freq=800000i 1604049750000000000
-> linux_cpu,cpu=3,host=Z370M-DS3H scaling_cur_freq=2089249i,scaling_max_freq=4900000i,scaling_min_freq=800000i 1604049750000000000
-> linux_cpu,cpu=4,host=Z370M-DS3H scaling_cur_freq=1272475i,scaling_max_freq=4900000i,scaling_min_freq=800000i 1604049750000000000
-> linux_cpu,cpu=5,host=Z370M-DS3H scaling_cur_freq=1374903i,scaling_max_freq=4900000i,scaling_min_freq=800000i 1604049750000000000
-> linux_cpu,cpu=6,host=Z370M-DS3H scaling_cur_freq=1355753i,scaling_max_freq=4900000i,scaling_min_freq=800000i 1604049750000000000
-> linux_cpu,cpu=7,host=Z370M-DS3H scaling_cur_freq=1153656i,scaling_max_freq=4900000i,scaling_min_freq=800000i 1604049750000000000
+> linux_cpu,cpu=0,host=go scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i,throttle_count=0i,throttle_max_time=0i,throttle_total_time=0i,scaling_cur_freq=803157i,scaling_min_freq=400000i 1617621150000000000
+> linux_cpu,cpu=1,host=go throttle_total_time=0i,scaling_cur_freq=802939i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i,throttle_count=0i,throttle_max_time=0i 1617621150000000000
+> linux_cpu,cpu=10,host=go throttle_max_time=0i,throttle_total_time=0i,scaling_cur_freq=838343i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i,throttle_count=0i 1617621150000000000
+> linux_cpu,cpu=11,host=go cpuinfo_max_freq=4700000i,throttle_count=0i,throttle_max_time=0i,throttle_total_time=0i,scaling_cur_freq=800054i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i 1617621150000000000
+> linux_cpu,cpu=2,host=go throttle_total_time=0i,scaling_cur_freq=800404i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i,throttle_count=0i,throttle_max_time=0i 1617621150000000000
+> linux_cpu,cpu=3,host=go throttle_total_time=0i,scaling_cur_freq=800126i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i,throttle_count=0i,throttle_max_time=0i 1617621150000000000
+> linux_cpu,cpu=4,host=go cpuinfo_max_freq=4700000i,throttle_count=0i,throttle_max_time=0i,throttle_total_time=0i,scaling_cur_freq=800359i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i 1617621150000000000
+> linux_cpu,cpu=5,host=go throttle_max_time=0i,throttle_total_time=0i,scaling_cur_freq=800093i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i,throttle_count=0i 1617621150000000000
+> linux_cpu,cpu=6,host=go cpuinfo_max_freq=4700000i,throttle_count=0i,throttle_max_time=0i,throttle_total_time=0i,scaling_cur_freq=741646i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i 1617621150000000000
+> linux_cpu,cpu=7,host=go scaling_cur_freq=700006i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i,throttle_count=0i,throttle_max_time=0i,throttle_total_time=0i 1617621150000000000
+> linux_cpu,cpu=8,host=go throttle_max_time=0i,throttle_total_time=0i,scaling_cur_freq=700046i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i,throttle_count=0i 1617621150000000000
+> linux_cpu,cpu=9,host=go throttle_count=0i,throttle_max_time=0i,throttle_total_time=0i,scaling_cur_freq=700075i,scaling_min_freq=400000i,scaling_max_freq=4700000i,cpuinfo_min_freq=400000i,cpuinfo_max_freq=4700000i 1617621150000000000
 ```

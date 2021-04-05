@@ -15,13 +15,16 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
 
-const defaultHostSys = "/sys"
+const (
+	defaultHostSys = "/sys"
+	cpufreq        = "cpufreq"
+	thermal        = "thermal"
+)
 
 type LinuxCPU struct {
 	Log             telegraf.Logger `toml:"-"`
 	PathSysfs       string          `toml:"host_sys"`
-	GatherCPUFreq   bool            `toml:"gather_cpufreq"`
-	GatherThrottles bool            `toml:"gather_throttles"`
+	Metrics         []string        `toml:"metrics"`
 	cpus            []cpu
 }
 
@@ -43,13 +46,11 @@ var sampleConfig = `
   ## Defaults:
   # host_sys = "/sys"
 
-  ## Gather CPU frequency information
+  ## CPU metrics collected by the plugin.
+  ## Supported options:
+  ## "cpufreq", "thermal"
   ## Defaults:
-  # gather_cpufreq = true
-
-  ## Gather CPU throttle information per core
-  ## Defaults:
-  # gather_throttles = false
+  # metrics = ["cpufreq""]
 `
 
 func (g *LinuxCPU) SampleConfig() string {
@@ -65,9 +66,17 @@ func (g *LinuxCPU) Init() error {
 		g.PathSysfs = defaultHostSys
 	}
 
+	if len(g.Metrics) == 0 {
+		// The user has not enabled any of the metrics: fail fast
+		return fmt.Errorf("no metrics selected")
+	}
+
 	cpus, err := g.discoverCpus()
 	if err != nil {
 		return err
+	} else if len(cpus) == 0 {
+		// Although the user has specified metrics to collect, `discoverCpus` failed to find the required metrics
+		return fmt.Errorf("no CPUs detected to track")
 	}
 	g.cpus = cpus
 
@@ -124,7 +133,7 @@ func (g *LinuxCPU) discoverCpus() ([]cpu, error) {
 
 		var props []prop
 
-		if g.GatherCPUFreq {
+		if contains(g.Metrics, cpufreq) {
 			props = append(props,
 				prop{ name: "scaling_cur_freq", path: "cpufreq/scaling_cur_freq", optional: false },
 				prop{ name: "scaling_min_freq", path: "cpufreq/scaling_min_freq", optional: false },
@@ -135,7 +144,7 @@ func (g *LinuxCPU) discoverCpus() ([]cpu, error) {
 			)
 		}
 
-		if g.GatherThrottles {
+		if contains(g.Metrics, thermal) {
 			props = append(
 				props,
 				prop{ name: "throttle_count", path: "thermal_throttle/core_throttle_count", optional: false },
@@ -147,7 +156,11 @@ func (g *LinuxCPU) discoverCpus() ([]cpu, error) {
 		var failed = false
 		for _, prop := range props {
 			fd, err := os.Open(filepath.Join(dir, prop.path))
-			if err != nil && !prop.optional {
+			if err != nil {
+				if prop.optional {
+					continue
+				}
+
 				g.Log.Warnf("Failed to load property %s: %s", filepath.Join(dir, prop.path), err)
 				failed = true
 				break
@@ -171,8 +184,8 @@ func (g *LinuxCPU) discoverCpus() ([]cpu, error) {
 func init() {
 	inputs.Add("linux_cpu", func() telegraf.Input {
 		return &LinuxCPU{
-			GatherCPUFreq: true,
-		}
+			Metrics: []string{ "cpufreq" },
+		} 
 	})
 }
 
@@ -185,4 +198,14 @@ func readUintFromFile(fd *os.File) (uint64, error) {
 	}
 
 	return strconv.ParseUint(string(buffer[:n-1]), 10, 64)
+}
+
+func contains(slice []string, str string) bool {
+	for _, v := range slice {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
 }
